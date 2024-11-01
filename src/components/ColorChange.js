@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ColorPicker, useColor } from "react-color-palette";
+import "react-color-palette/css";
 import Img from "../assets/photo_2024-10-30_12-36-26.jpg";
 import "./colorchange.css";
 
@@ -9,7 +10,7 @@ const ColorChange = () => {
   const [colorMap, setColorMap] = useState(new Map());
   const [color, setColor] = useColor("#561ecb");
 
-  const isSimilarColor = (color1, color2, threshold = 100) => {
+  const isSimilarColor = (color1, color2, threshold = 10) => {
     return (
       Math.abs(color1[0] - color2[0]) < threshold &&
       Math.abs(color1[1] - color2[1]) < threshold &&
@@ -23,7 +24,7 @@ const ColorChange = () => {
     startY,
     targetColor,
     fillColor,
-    threshold = 50
+    threshold = 10
   ) => {
     const { width, height } = ctx.canvas;
     const pixelStack = [[startX, startY]];
@@ -78,7 +79,6 @@ const ColorChange = () => {
       color.rgb.b,
       Math.round(color.rgb.a * 255),
     ];
-    console.log(fillColor);
     const targetKey = `${x},${y}`;
 
     if (colorMap.has(targetKey)) {
