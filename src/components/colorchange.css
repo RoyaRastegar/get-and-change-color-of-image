@@ -1,0 +1,20 @@
+.container {
+  display: flex;
+  text-align: center;
+}
+
+.pallet {
+  width: max-content;
+}
+.img {
+  text-align: center;
+  height: 470px;
+}
+.img img {
+  display: none;
+}
+.img canvas {
+  border: 1px solid black;
+  border-radius: 12px;
+  height: 470px;
+}

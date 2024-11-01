@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
+import { ColorPicker, useColor } from "react-color-palette";
 import Img from "../assets/photo_2024-10-30_12-36-26.jpg";
+import "./colorchange.css";
 
 const ColorChange = () => {
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
   const [colorMap, setColorMap] = useState(new Map());
+  const [color, setColor] = useColor("#561ecb");
 
-  const isSimilarColor = (color1, color2, threshold = 30) => {
+  const isSimilarColor = (color1, color2, threshold = 100) => {
     return (
       Math.abs(color1[0] - color2[0]) < threshold &&
       Math.abs(color1[1] - color2[1]) < threshold &&
@@ -47,10 +50,9 @@ const ColorChange = () => {
       data[index + 2] = fillColor[2];
       data[index + 3] = fillColor[3];
 
-      // اضافه کردن پیکسل‌های همسایه به استک
-      if (x > 0) pixelStack.push([x - 1, y]); // چپ
-      if (x < width - 1) pixelStack.push([x + 1, y]); // راست
-      if (y > 0) pixelStack.push([x, y - 1]); // بالا
+      if (x > 0) pixelStack.push([x - 1, y]);
+      if (x < width - 1) pixelStack.push([x + 1, y]);
+      if (y > 0) pixelStack.push([x, y - 1]);
       if (y < height - 1) pixelStack.push([x, y + 1]);
     }
     ctx.putImageData(imageData, 0, 0);
@@ -70,8 +72,13 @@ const ColorChange = () => {
       pixelData[2],
       pixelData[3],
     ];
-    const fillColor = [255, 0, 0, 255];
-
+    const fillColor = [
+      color.rgb.r,
+      color.rgb.g,
+      color.rgb.b,
+      Math.round(color.rgb.a * 255),
+    ];
+    console.log(fillColor);
     const targetKey = `${x},${y}`;
 
     if (colorMap.has(targetKey)) {
@@ -101,22 +108,15 @@ const ColorChange = () => {
       img.removeEventListener("load", loadImage);
     };
   }, []);
-
   return (
-    <div>
-      <img
-        crossOrigin="anonymous"
-        ref={imgRef}
-        src={Img}
-        alt="img"
-        style={{ display: "none" }}
-        // onClick={handleClick}
-      />
-      <canvas
-        ref={canvasRef}
-        onClick={handleClick}
-        style={{ border: "1px solid black" }}
-      />
+    <div className="container">
+      <div className="pallet">
+        <ColorPicker color={color} onChange={setColor} />
+      </div>
+      <div className="img">
+        <img crossOrigin="anonymous" ref={imgRef} src={Img} alt="img" />
+        <canvas ref={canvasRef} onClick={handleClick} />
+      </div>
     </div>
   );
 };
