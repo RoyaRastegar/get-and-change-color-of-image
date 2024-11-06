@@ -1,14 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { ColorPicker, useColor } from "react-color-palette";
-import "react-color-palette/css";
+import { useDispatch, useSelector } from "react-redux";
+import { setColor, updateColorMap } from "../featurs/changeColor/colorSlice";
 import Img from "../assets/photo_2024-10-30_12-36-26.jpg";
 import "./colorchange.css";
+import "react-color-palette/css";
 
 const ColorChange = () => {
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
-  const [colorMap, setColorMap] = useState(new Map());
-  const [color, setColor] = useColor("#561ecb");
+  const dispatch = useDispatch();
+  const color = useSelector((state) => state.color.color);
+  const [currentColor] = useColor(color);
+  const colorMap = useSelector((store) => store.color.colorMap);
 
   const isSimilarColor = (color1, color2, threshold = 10) => {
     return (
@@ -26,8 +30,18 @@ const ColorChange = () => {
     fillColor,
     threshold = 10
   ) => {
+    if (
+      targetColor[0] === fillColor[0] &&
+      targetColor[1] === fillColor[1] &&
+      targetColor[2] === fillColor[2] &&
+      targetColor[3] === fillColor[3]
+    ) {
+      return [];
+    }
+
     const { width, height } = ctx.canvas;
     const pixelStack = [[startX, startY]];
+    const visitedPixels = [];
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
 
@@ -42,10 +56,8 @@ const ColorChange = () => {
         data[index + 3],
       ];
 
-      if (!isSimilarColor(currentColor, targetColor, threshold)) {
-        continue;
-      }
-
+      if (!isSimilarColor(currentColor, targetColor, threshold)) continue;
+      visitedPixels.push([x, y]);
       data[index] = fillColor[0];
       data[index + 1] = fillColor[1];
       data[index + 2] = fillColor[2];
@@ -57,6 +69,7 @@ const ColorChange = () => {
       if (y < height - 1) pixelStack.push([x, y + 1]);
     }
     ctx.putImageData(imageData, 0, 0);
+    return visitedPixels;
   };
 
   const handleClick = (event) => {
@@ -66,38 +79,36 @@ const ColorChange = () => {
     const x = Math.floor(event.clientX - rect.left);
     const y = Math.floor(event.clientY - rect.top);
 
-    const pixelData = ctx.getImageData(x, y, 1, 1).data;
-    const targetColor = [
-      pixelData[0],
-      pixelData[1],
-      pixelData[2],
-      pixelData[3],
-    ];
-    const fillColor = [
-      color.rgb.r,
-      color.rgb.g,
-      color.rgb.b,
-      Math.round(color.rgb.a * 255),
-    ];
-    const targetKey = `${x},${y}`;
+    const hexToRgb = (hex) => {
+      const bigint = parseInt(hex.slice(1), 16);
+      return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255, 255];
+    };
 
-    if (colorMap.has(targetKey)) {
-      const originalColor = colorMap.get(targetKey);
-      floodFill(ctx, x, y, fillColor, originalColor);
-      colorMap.delete(targetKey);
+    const targetKey = `${x}-${y}`;
+    if (colorMap[targetKey]) {
+      const originalColor = colorMap[targetKey];
+      floodFill(ctx, x, y, hexToRgb(color), originalColor, 10);
+      const newColorMap = { ...colorMap };
+      delete newColorMap[targetKey];
+      dispatch(updateColorMap(newColorMap));
     } else {
-      colorMap.set(targetKey, targetColor);
-      floodFill(ctx, x, y, targetColor, fillColor);
+      const pixelData = ctx.getImageData(x, y, 1, 1).data;
+      const targetColor = [
+        pixelData[0],
+        pixelData[1],
+        pixelData[2],
+        pixelData[3],
+      ];
+      const fillColor = hexToRgb(color);
+      floodFill(ctx, x, y, targetColor, fillColor, 10);
+      dispatch(updateColorMap({ ...colorMap, [targetKey]: targetColor }));
     }
-
-    setColorMap(new Map(colorMap));
   };
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const img = imgRef.current;
-
     const loadImage = () => {
       canvas.width = img.width;
       canvas.height = img.height;
@@ -111,8 +122,14 @@ const ColorChange = () => {
   return (
     <div className="container">
       <div className="pallet">
-        <ColorPicker color={color} onChange={setColor} />
+        <ColorPicker
+          color={currentColor}
+          onChange={(newColor) => {
+            dispatch(setColor(newColor.hex));
+          }}
+        />
       </div>
+
       <div className="img">
         <img crossOrigin="anonymous" ref={imgRef} src={Img} alt="img" />
         <canvas ref={canvasRef} onClick={handleClick} />

@@ -1,10 +1,11 @@
 import ColorChange from "./components/ColorChange";
-
+import { Provider } from "react-redux";
+import store from "./store";
 function App() {
   return (
-    <div>
+    <Provider store={store}>
       <ColorChange />
-    </div>
+    </Provider>
   );
 }
 
